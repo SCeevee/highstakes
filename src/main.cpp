@@ -1,9 +1,12 @@
 #include "main.h"
+#include "pros/motors.hpp"
 #define as(a, b, c, d) for (auto a = b; a < c; a += d)
 #define de(a, b, c, d) for (auto a = b; a > c; a -= d)
 
 pros::MotorGroup left ({1, 2, 3}, pros::MotorGearset::blue);
 pros::MotorGroup right({-4, -5, -6}, pros::MotorGearset::blue);
+pros::Motor roller (7,pros::MotorGearset::green);// i defined these for you guys according to discord but follow the rest according to shyam (P.S. move_velocity(127))
+pros::Motor chain (-8,pros::MotorGearset::blue);
 pros::Controller ctrl (CONTROLLER_MASTER); //controller here
 /**
  * A callback function for LLEMU's center button.
@@ -20,7 +23,7 @@ void on_center_button() {
 		pros::lcd::clear_line(2);
 	}
 }
-
+// also add drive functions for auton since you got drivetrain done to get things more expeditied
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -28,9 +31,19 @@ void on_center_button() {
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	pros::lcd::initialize();
+	pros::lcd::initialize();// Sets up LLEMU (https://pros.cs.purdue.edu/v5/tutorials/topical/llemu.html)
 	pros::lcd::set_text(1, "Hello PROS User!");
-
+  /*It's good to have an lcd layout to give flags etc to the driver; you can do this through pros::lcd::print() which is to the brain or
+  ctrl.print() which is to the controller, it's up to you to decide where!
+  (example from mentor code):
+  lcd layout (max 8 lines):
+  0: hi (can be changed/removed later)
+  1: left button setting - color sort fling
+  2: mid button setting - auton color     <-- maybe do these toggles for later?
+  3: right button setting - auton side    <--
+  4: temp flags - overheat or not
+  5: comp ctrl mode flag - what mode it is in right now
+  */
 	pros::lcd::register_btn1_cb(on_center_button);
 }
 
@@ -79,9 +92,6 @@ void autonomous() {}
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::MotorGroup left_mg({1, -2, 3});    // Creates a motor group with forwards ports 1 & 3 and reversed port 2
-	pros::MotorGroup right_mg({-4, 5, -6});  // Creates a motor group with forwards port 5 and reversed ports 4 & 6
 
 
   while (true) {
@@ -89,28 +99,28 @@ void opcontrol() {
 		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
 		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);  // Prints status of the emulated screen LCDs
     //temp flags
-        float dtLeftOT = ((round(10.0*((left.get_temperature(0) + left.get_temperature(1) + left.get_temperature(2))/3.0)))/10.0);
-        float dtRightOT = ((round(10.0*((right.get_temperature(0) + right.get_temperature(1) + right.get_temperature(2))/3.0)))/10.0);
-        //float chainOT = chain.get_temperature();
-        //float lbOT = lb.get_temperature();
-        //float mogoOT = mogo.get_temperature();
-        //printing the overtemp flags on to lcd
-        //pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Mogo%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, mogoOT);
+    float dtLeftOT = ((round(10.0*((left.get_temperature(0) + left.get_temperature(1) + left.get_temperature(2))/3.0)))/10.0);
+    float dtRightOT = ((round(10.0*((right.get_temperature(0) + right.get_temperature(1) + right.get_temperature(2))/3.0)))/10.0);
+    //float chainOT = chain.get_temperature();
+    //float lbOT = lb.get_temperature();
+    //float mogoOT = mogo.get_temperature();
+    //printing the overtemp flags on to lcd
+    //pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Mogo%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, mogoOT);
 		// Arcade control scheme
     int power = ctrl.get_analog(ANALOG_LEFT_Y);
-      int turn;
-      if(ctrl.get_digital(DIGITAL_Y)) {
-        turn = (ctrl.get_analog(ANALOG_RIGHT_X)) / 2;
-      }
-      else {
-        turn = ctrl.get_analog(ANALOG_RIGHT_X);
-      }
-      int powerL = power + turn;
-      int powerR = power - turn;
-        
-      //dt
-      left.move(powerL);
-      right.move(powerR);
+    int turn;
+    if(ctrl.get_digital(DIGITAL_Y)) {
+      turn = (ctrl.get_analog(ANALOG_RIGHT_X)) / 2;
+    }
+    else {
+      turn = ctrl.get_analog(ANALOG_RIGHT_X);
+    }
+    int powerL = power + turn;
+    int powerR = power - turn;
+      
+    //dt
+    left.move(powerL);
+    right.move(powerR);
 		pros::delay(20);                               // Run for 20 ms then update
 	}
 }
