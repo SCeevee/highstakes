@@ -1,5 +1,10 @@
 #include "main.h"
+#define as(a, b, c, d) for (auto a = b; a < c; a += d)
+#define de(a, b, c, d) for (auto a = b; a > c; a -= d)
 
+pros::MotorGroup left ({1, 2, 3}, pros::MotorGearset::blue);
+pros::MotorGroup right({-4, -5, -6}, pros::MotorGearset::blue);
+pros::Controller ctrl (CONTROLLER_MASTER); //controller here
 /**
  * A callback function for LLEMU's center button.
  *
@@ -79,16 +84,33 @@ void opcontrol() {
 	pros::MotorGroup right_mg({-4, 5, -6});  // Creates a motor group with forwards port 5 and reversed ports 4 & 6
 
 
-	while (true) {
+  while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
 		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
 		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);  // Prints status of the emulated screen LCDs
-
+    //temp flags
+        float dtLeftOT = ((round(10.0*((left.get_temperature(0) + left.get_temperature(1) + left.get_temperature(2))/3.0)))/10.0);
+        float dtRightOT = ((round(10.0*((right.get_temperature(0) + right.get_temperature(1) + right.get_temperature(2))/3.0)))/10.0);
+        //float chainOT = chain.get_temperature();
+        //float lbOT = lb.get_temperature();
+        //float mogoOT = mogo.get_temperature();
+        //printing the overtemp flags on to lcd
+        //pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Mogo%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, mogoOT);
 		// Arcade control scheme
-		int dir = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
-		int turn = master.get_analog(ANALOG_RIGHT_X);  // Gets the turn left/right from right joystick
-		left_mg.move(dir - turn);                      // Sets left motor voltage
-		right_mg.move(dir + turn);                     // Sets right motor voltage
+    int power = ctrl.get_analog(ANALOG_LEFT_Y);
+      int turn;
+      if(ctrl.get_digital(DIGITAL_Y)) {
+        turn = (ctrl.get_analog(ANALOG_RIGHT_X)) / 2;
+      }
+      else {
+        turn = ctrl.get_analog(ANALOG_RIGHT_X);
+      }
+      int powerL = power + turn;
+      int powerR = power - turn;
+        
+      //dt
+      left.move(powerL);
+      right.move(powerR);
 		pros::delay(20);                               // Run for 20 ms then update
 	}
 }
