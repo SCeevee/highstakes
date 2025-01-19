@@ -12,13 +12,17 @@ int sortedColor = 0; //0 = keep blue, 1 = keep red, 2 = none
 bool autonColor; bool autonSide;//T = blue, F = red; T = close, F = far
 const int wheelCirc = 220; // in mm
 const int driveEncoders = 300; // ticks per revolution
-const double trackWidth = 9.81 * 25.4; // conversion to mm
-
+const double trackWidth = 10.8 * 25.4; // conversion to mm
+int lbStates[3] = {0,100,200}; //list of all the states
+int lbState = 0; //current state it is in
+const int lbTotalStates = sizeof(lbStates) / sizeof(lbStates[0]); //total number of states
 
 pros::MotorGroup left ({1, 2, 3}, pros::MotorGearset::blue);
-pros::MotorGroup right({-4, -5, -6}, pros::MotorGearset::blue);
-pros::Motor roller (7,pros::MotorGearset::green);// i defined these for you guys according to discord but follow the rest according to shyam (P.S. move(127))
+pros::MotorGroup right({4, 5, 6}, pros::MotorGearset::blue);
+pros::Motor roller (7,pros::MotorGearset::green);// i defined thesge for you guys according to discord but follow the rest according to shyam (P.S. move(127))
 pros::Motor chain (-8,pros::MotorGearset::blue);
+pros::Motor lb (9,pros::MotorGearset::blue);
+pros::Rotation lbRotation (10);
 pros::Controller ctrl (CONTROLLER_MASTER); //controller here
 /**
  * A callback function for LLEMU's center button.
@@ -82,6 +86,21 @@ void turn(double degrees, bool turnLeft, int rpm){
 
   pros::delay(pause + 100);
 }
+void ladyBrownCycle(bool forward){
+  if(forward){
+    lbState++;
+  }
+  else{
+    lbState--;
+  }
+  lbState = lbState % lbTotalStates;
+}
+void ladyBrownSet(){
+  int lbsense = 1.5;
+  int error = (lbStates[lbState] - lbRotation.get_position());
+  int movePower = lbsense * error;
+  lb.move(movePower);
+}
 // also add drive functions for auton since you got drivetrain done to get things more expeditied
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -114,7 +133,10 @@ void initialize() {
       pros::lcd::print(3, "RB: FAR side auton");
     }
     //insert temperature flags when all the motors are defined
-  });  
+  });
+  pros::Task([]{
+    ladyBrownSet(); //rotates the lady brown thing to the state
+  });
   /*It's good to have an lcd layout to give flags etc to the driver; you can do this through pros::lcd::print() which is to the brain or
   ctrl.print() which is to the controller, it's up to you to decide where!
   (example from mentor code):
@@ -209,6 +231,13 @@ void opcontrol() {
       chain.move(127);
     } if(ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
       chain.move(-128);
+    }
+
+    if(ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_UP)){
+      ladyBrownCycle(true);
+    }
+    if(ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)){
+      ladyBrownCycle(false);
     }
 		pros::delay(20);                               // Run for 20 ms then update
 	}
