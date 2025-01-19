@@ -202,12 +202,13 @@ void opcontrol() {
 		//temp flags
     float dtLeftOT = ((round(10.0*((left.get_temperature(0) + left.get_temperature(1) + left.get_temperature(2))/3.0)))/10.0);
     float dtRightOT = ((round(10.0*((right.get_temperature(0) + right.get_temperature(1) + right.get_temperature(2))/3.0)))/10.0);
-    //float chainOT = chain.get_temperature();
-    //float lbOT = lb.get_temperature();
-    //float mogoOT = mogo.get_temperature();
+    float chainOT = chain.get_temperature();
+    float lbOT = lb.get_temperature();
+    float rollerOT = roller.get_temperature();
     //printing the overtemp flags on to lcd
-    //pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Mogo%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, mogoOT);
-		// Arcade control scheme
+    pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Mogo%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
+		ctrl.print(0,0, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Mogo%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
+    // Arcade control scheme
     int power = ctrl.get_analog(ANALOG_LEFT_Y);
     int turn;
     if(ctrl.get_digital(DIGITAL_Y)) {// modifier
