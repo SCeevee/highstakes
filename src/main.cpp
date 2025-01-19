@@ -19,10 +19,13 @@ const int lbTotalStates = sizeof(lbStates) / sizeof(lbStates[0]); //total number
 
 pros::MotorGroup left ({1, 2, 3}, pros::MotorGearset::blue);
 pros::MotorGroup right({4, 5, 6}, pros::MotorGearset::blue);
-pros::Motor roller (7,pros::MotorGearset::green);// i defined thesge for you guys according to discord but follow the rest according to shyam (P.S. move(127))
+pros::Motor roller (7,pros::MotorGearset::green);// i defined these for you guys according to discord but follow the rest according to shyam (P.S. move(127))
 pros::Motor chain (-8,pros::MotorGearset::blue);
 pros::Motor lb (9,pros::MotorGearset::blue);
-pros::Rotation lbRotation (10);
+
+pros::Rotation lbRotation (10); 
+pros::Imu inertial (11);
+
 pros::Controller ctrl (CONTROLLER_MASTER); //controller here
 /**
  * A callback function for LLEMU's center button.
@@ -101,6 +104,48 @@ void ladyBrownSet(){
   int movePower = lbsense * error;
   lb.move(movePower);
 }
+
+void toHeading(double degrees, int rpm) {
+    double kp = 0.5;
+    while(true) {
+        double error = degrees - inertial.get_heading();
+        double turnControl = kp * error;
+
+        left.move(turnControl * -1);
+        right.move(turnControl);
+
+        //to break out of while true
+        if(abs(error) <= 0.5) {
+            break;
+        }
+    }
+    pros::delay(100);
+}
+
+//old turn func but hopefully better
+void inertialTurn(double degrees, int rpm) {
+    double kp = 0.5;
+    //remember: sensor thinks CCW is negative, we say CCW is positive
+    //so every time we get the inertial sensor rotation we mult by -1
+    double initPos = -1 * inertial.get_rotation();
+    double finalPos = initPos + degrees;
+    while(true) {
+        double needToTurn = finalPos - (-1 * inertial.get_rotation());
+        double turnControl = kp * needToTurn;
+
+        left.move(turnControl * -1);
+        right.move(turnControl);
+
+        //to break out of while true
+        if(abs(needToTurn) <= 0.5) {
+            break;
+        }
+    }
+
+    pros::delay(100);
+}
+
+
 // also add drive functions for auton since you got drivetrain done to get things more expeditied
 /**
  * Runs initialization code. This occurs as soon as the program is started.
