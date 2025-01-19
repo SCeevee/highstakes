@@ -1,11 +1,23 @@
 #include "main.h"
+#include "liblvgl/llemu.hpp"
+#include "pros/abstract_motor.hpp"
+#include "pros/llemu.hpp"
 #include "pros/motors.hpp"
+#include "pros/rtos.hpp"
+#include <numbers>
 #define as(a, b, c, d) for (auto a = b; a < c; a += d)
 #define de(a, b, c, d) for (auto a = b; a > c; a -= d)
 
+int sortedColor = 0; //0 = keep blue, 1 = keep red, 2 = none
+bool autonColor; bool autonSide;//T = blue, F = red; T = close, F = far
+const int wheelCirc = 220; // in mm
+const int driveEncoders = 300; // ticks per revolution
+const double trackWidth = 9.81 * 25.4; // conversion to mm
+
+
 pros::MotorGroup left ({1, 2, 3}, pros::MotorGearset::blue);
 pros::MotorGroup right({-4, -5, -6}, pros::MotorGearset::blue);
-pros::Motor roller (7,pros::MotorGearset::green);// i defined these for you guys according to discord but follow the rest according to shyam (P.S. move_velocity(127))
+pros::Motor roller (7,pros::MotorGearset::green);// i defined these for you guys according to discord but follow the rest according to shyam (P.S. move(127))
 pros::Motor chain (-8,pros::MotorGearset::blue);
 pros::Controller ctrl (CONTROLLER_MASTER); //controller here
 /**
@@ -14,14 +26,61 @@ pros::Controller ctrl (CONTROLLER_MASTER); //controller here
  * When this callback is fired, it will toggle line 2 of the LCD text between
  * "I was pressed!" and nothing.
  */
+void on_left_button(){
+  sortedColor++;
+    if (sortedColor > 2) {
+      sortedColor = 0;
+    }
+}
+
 void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
+  autonColor = !autonColor;
+}
+
+void on_right_button() {
+  autonSide = !autonSide;
+}
+
+void ring_detected(){}
+
+void ring_not_detected(){}
+
+//Moves the robot forward and backward
+void drive(int inchesDist, bool forward, int rpm) {
+  left.tare_position_all(); right.tare_position_all();
+  double mmDist = inchesDist * 25.4;
+  double rotations = round(10*(mmDist / wheelCirc)) * 0.1;
+  double ticks = round(rotations * driveEncoders);
+  double pause = (rotations / rpm) * 60000;
+
+  if (forward) {
+    left.move_absolute(ticks, rpm);
+    right.move_absolute(ticks, rpm);
+  } else {
+    left.move_absolute(-ticks, rpm);
+    right.move_absolute(-ticks, rpm);
+  }
+
+  pros::delay(pause + 100);
+}
+
+void turn(double degrees, bool turnLeft, int rpm){
+  left.tare_position_all();right.tare_position_all();
+  double turnCirc = std::numbers::pi * trackWidth;
+  double arcLen = (degrees / 360) * turnCirc;
+  double rotations = arcLen / wheelCirc;
+  double ticks = round(rotations * driveEncoders);
+  double pause = (rotations / rpm) * 60 * 1000;
+
+  if (turnLeft) {
+    left.move_absolute(-ticks, rpm);
+    right.move_absolute(ticks, rpm);  
+  } else {
+    left.move_absolute(ticks, rpm);
+    right.move_absolute(-ticks, rpm);
+  }
+
+  pros::delay(pause + 100);
 }
 // also add drive functions for auton since you got drivetrain done to get things more expeditied
 /**
@@ -32,7 +91,30 @@ void on_center_button() {
  */
 void initialize() {
 	pros::lcd::initialize();// Sets up LLEMU (https://pros.cs.purdue.edu/v5/tutorials/topical/llemu.html)
-	pros::lcd::set_text(1, "Hello PROS User!");
+  pros::lcd::register_btn0_cb(on_left_button); pros::lcd::register_btn1_cb(on_center_button); pros::lcd::register_btn2_cb(on_right_button);
+  pros::lcd::print(0, "Hi"); pros::lcd::print(5, "Initialized");
+  pros::Task([]{
+    if(sortedColor == 0){//auton color info
+      pros::lcd::print(1, "LB: Sorting for BLUE"); ctrl.print(1, 0, "LB: Sorting for BLUE");
+    } else if (sortedColor == 1) {
+      pros::lcd::print(1, "LB: Sorting for RED"); ctrl.print(1, 0, "LB: Sorting for RED");
+    } else {
+      pros::lcd::print(1, "LB: Sorting for N/A"); ctrl.print(1, 0, "LB: Sorting for N/A");
+    }
+
+    if(autonColor) {
+      pros::lcd::print(2, "CB: BLUE side auton");
+    } else {
+      pros::lcd::print(2, "CB: RED side auton");
+    }
+
+    if(autonSide) {
+      pros::lcd::print(3, "RB: CLOSE side auton");
+    } else {
+      pros::lcd::print(3, "RB: FAR side auton");
+    }
+    //insert temperature flags when all the motors are defined
+  });  
   /*It's good to have an lcd layout to give flags etc to the driver; you can do this through pros::lcd::print() which is to the brain or
   ctrl.print() which is to the controller, it's up to you to decide where!
   (example from mentor code):
@@ -52,7 +134,7 @@ void initialize() {
  * the VEX Competition Switch, following either autonomous or opcontrol. When
  * the robot is enabled, this task will exit.
  */
-void disabled() {}
+void disabled() {pros::lcd::print(5, "Disabled");}
 
 /**
  * Runs after initialize(), and before autonomous when connected to the Field
@@ -63,7 +145,7 @@ void disabled() {}
  * This task will exit when the robot is enabled and autonomous or opcontrol
  * starts.
  */
-void competition_initialize() {}
+void competition_initialize() {pros::lcd::print(5, "Competition Initialize");}
 
 /**
  * Runs the user autonomous code. This function will be started in its own task
@@ -76,7 +158,7 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {pros::lcd::print(5, "Autonomous");}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -93,12 +175,9 @@ void autonomous() {}
  */
 void opcontrol() {
 
-
+  pros::lcd::print(5, "OpControl");
   while (true) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);  // Prints status of the emulated screen LCDs
-    //temp flags
+		//temp flags
     float dtLeftOT = ((round(10.0*((left.get_temperature(0) + left.get_temperature(1) + left.get_temperature(2))/3.0)))/10.0);
     float dtRightOT = ((round(10.0*((right.get_temperature(0) + right.get_temperature(1) + right.get_temperature(2))/3.0)))/10.0);
     //float chainOT = chain.get_temperature();
@@ -109,7 +188,7 @@ void opcontrol() {
 		// Arcade control scheme
     int power = ctrl.get_analog(ANALOG_LEFT_Y);
     int turn;
-    if(ctrl.get_digital(DIGITAL_Y)) {
+    if(ctrl.get_digital(DIGITAL_Y)) {// modifier
       turn = (ctrl.get_analog(ANALOG_RIGHT_X)) / 2;
     }
     else {
@@ -121,6 +200,16 @@ void opcontrol() {
     //dt
     left.move(powerL);
     right.move(powerR);
+
+    if(ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
+      roller.move(127);
+    } if(ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_L2)){
+      roller.move(-128);
+    } if(ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
+      chain.move(127);
+    } if(ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
+      chain.move(-128);
+    }
 		pros::delay(20);                               // Run for 20 ms then update
 	}
 }
