@@ -1,7 +1,5 @@
 #include "main.h"
-
 #include <cmath>
-
 #include "liblvgl/llemu.hpp"
 #include "pros/abstract_motor.hpp"
 #include "pros/llemu.hpp"
