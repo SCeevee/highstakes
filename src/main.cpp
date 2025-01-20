@@ -11,23 +11,19 @@
 #define as(a, b, c, d) for (auto a = b; a < c; a += d)
 #define de(a, b, c, d) for (auto a = b; a > c; a -= d)
 
-int sortedColor = 0;  // 0 = keep blue, 1 = keep red, 2 = none
-bool autonColor;  // F = keep blue, T = keep red 
-bool autonSide;                         // T = blue, F = red; T = close, F = far
-const int wheelCirc = 220;              // in mm
-const int driveEncoders = 300;          // ticks per revolution
-const double trackWidth = 10.8 * 25.4;  // conversion to mm
-int lbStates[3] = {0, 100, 200};        // list of all the states
-int lbState = 0;                        // current state it is in
-const int lbTotalStates =
-    sizeof(lbStates) / sizeof(lbStates[0]);  // total number of states
+int sortedColor = 0;// 0 = keep blue, 1 = keep red, 2 = none
+bool autonElim;// F = keep blue, T = keep red 
+bool autonSide;// T = close, F = far
+const int wheelCirc = 220;// in mm
+const int driveEncoders = 300;// ticks per revolution
+const double trackWidth = 10.8 * 25.4;// conversion to mm
+int lbStates[3] = {0, 100, 200};// list of all the states
+int lbState = 0;// current state it is in
+const int lbTotalStates = sizeof(lbStates) / sizeof(lbStates[0]);// total number of states
 
 pros::MotorGroup left({11, 12, 13}, pros::MotorGearset::blue);
 pros::MotorGroup right({18, 19, 20}, pros::MotorGearset::blue);
-pros::Motor roller(
-    7, pros::MotorGearset::green);  // i defined these for you guys according to
-                                    // discord but follow the rest according to
-                                    // shyam (P.S. move(127))
+pros::Motor roller(1, pros::MotorGearset::green);
 pros::Motor chain(-8, pros::MotorGearset::blue);
 pros::Motor lb(9, pros::MotorGearset::blue);
 
@@ -38,38 +34,29 @@ pros::Vision vision(4);
 pros::adi::Pneumatics mogoLeft('a', false);
 pros::adi::Pneumatics mogoRight('b', false);
 
-pros::vision_object_s_t keepRed =
-    vision.get_by_sig(0, 1);  // sorts out red donuts
-pros::vision_object_s_t keepBlue =
-    vision.get_by_sig(0, 2);  // sorts out blue donuts
+pros::vision_object_s_t keepRed = vision.get_by_sig(0, 1);// sorts out red donuts
+pros::vision_object_s_t keepBlue = vision.get_by_sig(0, 2);// sorts out blue donuts
 
 pros::Controller ctrl(CONTROLLER_MASTER);  // controller here
-/**
- * A callback function for LLEMU center button.
- *
- * When this callback is fired, it will toggle line 2 of the LCD text between
- * "I was pressed!" and nothing.
- */
+
 void on_left_button() {
   sortedColor++;
-  if (sortedColor > 2) {
-    sortedColor = 0;
-  }
+  sortedColor = sortedColor % 2;
 }
 
-void on_center_button() { autonColor = !autonColor; }
+void on_center_button() { autonElim = !autonElim; }
 
 void on_right_button() { autonSide = !autonSide; }
 
 void donut_detected() {
-  chain.set_brake_mode(pros::MotorBrake::brake);  // to effectively fling
-  ctrl.rumble(".");                               // alerts driver
-  pros::delay(90);                                // adjustable
+  chain.set_brake_mode(pros::MotorBrake::brake);// to effectively fling
+  ctrl.rumble(".");// alerts driver
+  pros::delay(90);// adjustable
   chain.brake();
   pros::delay(200);
 }
 
-void donut_not_detected() {  // resets it to coast when not sorting
+void donut_not_detected() {// resets it to coast when not sorting
   chain.set_brake_mode(pros::MotorBrake::coast);
 }
 
@@ -190,7 +177,7 @@ void intake() {
   roller.move(127);
   chain.move(127);
   while(true){
-    if(autonColor){
+    if(sortedColor == 0){
       if(keepBlue.signature == 1){
         donut_detected();
         break;
@@ -211,14 +198,6 @@ void intake() {
   }
 }
 
-// also add drive functions for auton since you got drivetrain done to get
-// things more expedited
-/**
- * Runs initialization code. This occurs as soon as the program is started.
- *
- * All other competition modes are blocked by initialize; it is recommended
- * to keep execution time for this mode under a few seconds.
- */
 void initialize() {
   pros::lcd::
       initialize();  // Sets up LLEMU
@@ -240,10 +219,10 @@ void initialize() {
       ctrl.print(1, 0, "LB: Sorting for N/A");
     }
 
-    if (autonColor) {
-      pros::lcd::print(2, "CB: BLUE side auton");
+    if (autonElim) {
+      pros::lcd::print(2, "CB: ELIM auton");
     } else {
-      pros::lcd::print(2, "CB: RED side auton");
+      pros::lcd::print(2, "CB: QUAL auton");
     }
 
     if (autonSide) {
@@ -318,7 +297,25 @@ void competition_initialize() { pros::lcd::print(5, "Competition Initialize"); }
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() { pros::lcd::print(5, "Autonomous"); }
+void autonomous() { 
+  pros::lcd::print(5, "Autonomous");// COLOR IS ACCOUNTED IN intake()
+  if(autonElim){// Elimination auton here
+    if(autonSide){// close side
+      // Elimination, close side
+    }
+    else{// far side
+      // Elimination, far side
+    }
+  }
+  else{// Qualification auton here
+    if(autonSide){// close side
+    // Qualification, close side
+    }
+    else{// far side
+    // Qualification, far side
+    }
+  }
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
