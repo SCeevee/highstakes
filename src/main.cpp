@@ -22,8 +22,8 @@ int lbState = 0;                        // current state it is in
 const int lbTotalStates =
     sizeof(lbStates) / sizeof(lbStates[0]);  // total number of states
 
-pros::MotorGroup left({1, 2, 3}, pros::MotorGearset::blue);
-pros::MotorGroup right({4, 5, 6}, pros::MotorGearset::blue);
+pros::MotorGroup left({11, 12, 13}, pros::MotorGearset::blue);
+pros::MotorGroup right({18, 19, 20}, pros::MotorGearset::blue);
 pros::Motor roller(
     7, pros::MotorGearset::green);  // i defined these for you guys according to
                                     // discord but follow the rest according to
@@ -33,9 +33,15 @@ pros::Motor lb(9, pros::MotorGearset::blue);
 
 pros::Rotation lbRotation(10);
 pros::Imu inertial(11);
+pros::Vision vision(4);
 
 pros::adi::Pneumatics mogoLeft('a', false);
 pros::adi::Pneumatics mogoRight('b', false);
+
+pros::vision_object_s_t keepRed =
+    vision.get_by_sig(0, 1);  // sorts out red donuts
+pros::vision_object_s_t keepBlue =
+    vision.get_by_sig(0, 2);  // sorts out blue donuts
 
 pros::Controller ctrl(CONTROLLER_MASTER);  // controller here
 /**
@@ -55,9 +61,17 @@ void on_center_button() { autonColor = !autonColor; }
 
 void on_right_button() { autonSide = !autonSide; }
 
-void ring_detected() {}
+void donut_detected() {
+  chain.set_brake_mode(pros::MotorBrake::brake);  // to effectively fling
+  ctrl.rumble(".");                               // alerts driver
+  pros::delay(90);                                // adjustable
+  chain.brake();
+  pros::delay(200);
+}
 
-void ring_not_detected() {}
+void donut_not_detected() {  // resets it to coast when not sorting
+  chain.set_brake_mode(pros::MotorBrake::coast);
+}
 
 // Moves the robot forward and backward
 void drive(int inchesDist, bool forward, int rpm) {
@@ -217,6 +231,25 @@ void initialize() {
   pros::Task([] {
     ladyBrownSet();  // rotates the lady brown thing to the state
   });
+  pros::Task([]{
+    if (sortedColor == 0) {
+        if (keepBlue.signature == 1) {
+          donut_detected();
+        } else {
+          donut_not_detected();
+        }
+      }
+      if (sortedColor == 1) {
+        if (keepRed.signature == 1) {
+          donut_detected();
+        } else {
+          donut_not_detected();
+        }
+      }
+      if (sortedColor == 2) {
+        donut_not_detected();
+      }
+  });
   /*It's good to have an lcd layout to give flags etc to the driver; you can do
   this through pros::lcd::print() which is to the brain or ctrl.print() which is
   to the controller, it's up to you to decide where! (example from mentor code):
@@ -319,7 +352,7 @@ void opcontrol() {
       roller.move(-128);
     }
     if (ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-      chain.move(127);
+      chain.move(128);
     }
     if (ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
       chain.move(-128);
