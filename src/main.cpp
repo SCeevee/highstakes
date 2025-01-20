@@ -25,7 +25,7 @@ const int lbTotalStates =
 pros::MotorGroup left({11, 12, 13}, pros::MotorGearset::blue);
 pros::MotorGroup right({18, 19, 20}, pros::MotorGearset::blue);
 pros::Motor roller(
-    7, pros::MotorGearset::green);  // i defined these for you guys according to
+    1, pros::MotorGearset::green);  // i defined these for you guys according to
                                     // discord but follow the rest according to
                                     // shyam (P.S. move(127))
 pros::Motor chain(-8, pros::MotorGearset::blue);
