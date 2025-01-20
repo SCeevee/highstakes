@@ -107,7 +107,7 @@ void ladyBrownCycle(bool forward) {
   lbState = lbState % lbTotalStates;
 }
 void ladyBrownSet() {
-  int lbsense = 1.5;
+  double lbsense = 1.5;
   int error = (lbStates[lbState] - lbRotation.get_position());
   int movePower = lbsense * error;
   lb.move(movePower);
@@ -154,7 +154,7 @@ void inertialTurn(double degrees, int rpm) {
     right.move(turnControl);
 
     // to break out of while true
-    if (abs(needToTurn) <= 0.5) {
+    if (std::abs(needToTurn) <= 0.5) {
       break;
     }
   }
