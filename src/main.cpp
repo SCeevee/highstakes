@@ -4,7 +4,8 @@
 #include "pros/llemu.hpp"
 #include "pros/motors.hpp"
 #include "pros/rtos.hpp"
-#include <numbers>
+#include <cmath>
+#define pi 3.141592653589793
 #define as(a, b, c, d) for (auto a = b; a < c; a += d)
 #define de(a, b, c, d) for (auto a = b; a > c; a -= d)
 
@@ -25,6 +26,10 @@ pros::Motor lb (9,pros::MotorGearset::blue);
 
 pros::Rotation lbRotation (10); 
 pros::Imu inertial (11);
+
+pros::adi::Pneumatics mogoLeft('a', false);
+pros::adi::Pneumatics mogoRight('b', false);
+
 
 pros::Controller ctrl (CONTROLLER_MASTER); //controller here
 /**
@@ -52,6 +57,8 @@ void ring_detected(){}
 
 void ring_not_detected(){}
 
+
+
 //Moves the robot forward and backward
 void drive(int inchesDist, bool forward, int rpm) {
   left.tare_position_all(); right.tare_position_all();
@@ -73,7 +80,7 @@ void drive(int inchesDist, bool forward, int rpm) {
 
 void turn(double degrees, bool turnLeft, int rpm){
   left.tare_position_all();right.tare_position_all();
-  double turnCirc = std::numbers::pi * trackWidth;
+  double turnCirc = pi * trackWidth;
   double arcLen = (degrees / 360) * turnCirc;
   double rotations = arcLen / wheelCirc;
   double ticks = round(rotations * driveEncoders);
@@ -145,6 +152,15 @@ void inertialTurn(double degrees, int rpm) {
     pros::delay(100);
 }
 
+void mogoRetract(){
+  mogoLeft.retract();
+  mogoRight.retract();
+}
+
+void mogoExtend(){
+  mogoLeft.extend();  
+  mogoRight.extend();
+}
 
 // also add drive functions for auton since you got drivetrain done to get things more expeditied
 /**
@@ -251,8 +267,8 @@ void opcontrol() {
     float lbOT = lb.get_temperature();
     float rollerOT = roller.get_temperature();
     //printing the overtemp flags on to lcd
-    pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Mogo%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
-		ctrl.print(0,0, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Mogo%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
+    pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
+		ctrl.print(0,0, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
     // Arcade control scheme
     int power = ctrl.get_analog(ANALOG_LEFT_Y);
     int turn;
@@ -279,11 +295,17 @@ void opcontrol() {
       chain.move(-128);
     }
 
-    if(ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_UP)){
+    if(ctrl.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)){
       ladyBrownCycle(true);
     }
-    if(ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN)){
+    if(ctrl.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)){
       ladyBrownCycle(false);
+    }
+    if(ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_A)){
+      mogoExtend();
+    }
+    else{
+      mogoRetract();
     }
 		pros::delay(20);                               // Run for 20 ms then update
 	}
