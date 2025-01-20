@@ -108,8 +108,8 @@ void ladyBrownCycle(bool forward) {
 }
 void ladyBrownSet() {
   double lbsense = 1.5;
-  int error = (lbStates[lbState] - lbRotation.get_position());
-  int movePower = lbsense * error;
+  double error = (lbStates[lbState] - lbRotation.get_position());
+  double movePower = lbsense * error;
   lb.move(movePower);
 }
 
