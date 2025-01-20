@@ -12,7 +12,7 @@
 #define de(a, b, c, d) for (auto a = b; a > c; a -= d)
 
 int sortedColor = 0;  // 0 = keep blue, 1 = keep red, 2 = none
-bool autonColor;
+bool autonColor;  // F = keep blue, T = keep red 
 bool autonSide;                         // T = blue, F = red; T = close, F = far
 const int wheelCirc = 220;              // in mm
 const int driveEncoders = 300;          // ticks per revolution
@@ -45,7 +45,7 @@ pros::vision_object_s_t keepBlue =
 
 pros::Controller ctrl(CONTROLLER_MASTER);  // controller here
 /**
- * A callback function for LLEMU's center button.
+ * A callback function for LLEMU center button.
  *
  * When this callback is fired, it will toggle line 2 of the LCD text between
  * "I was pressed!" and nothing.
@@ -121,9 +121,9 @@ void ladyBrownCycle(bool forward) {
   lbState = lbState % lbTotalStates;
 }
 void ladyBrownSet() {
-  double lbsense = 1.5;
+  double kp = 1.5;
   double error = (lbStates[lbState] - lbRotation.get_position());
-  double movePower = lbsense * error;
+  double movePower = kp * error;
   lb.move(movePower);
 }
 
@@ -186,8 +186,33 @@ void mogoExtend() {
   mogoRight.extend();
 }
 
+void intake() {
+  roller.move(127);
+  chain.move(127);
+  while(true){
+    if(autonColor){
+      if(keepBlue.signature == 1){
+        donut_detected();
+        break;
+      } 
+      else {
+        donut_not_detected();
+      }
+    }
+    else {
+      if(keepRed.signature == 1){
+        donut_detected();
+        break;
+      }
+      else {
+        donut_not_detected();
+      }
+    }
+  }
+}
+
 // also add drive functions for auton since you got drivetrain done to get
-// things more expeditied
+// things more expedited
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
