@@ -10,7 +10,7 @@
 #define de(a, b, c, d) for (auto a = b; a > c; a -= d)
 
 int sortedColor = 0;// 0 = keep blue, 1 = keep red, 2 = none
-bool autonElim;// F = keep blue, T = keep red 
+bool autonElim;// F = qual auton, T = elim auton 
 bool autonSide;// T = close, F = far
 const int wheelCirc = 220;// in mm
 const int driveEncoders = 300;// ticks per revolution
@@ -23,7 +23,7 @@ pros::MotorGroup left({11, 12, 13}, pros::MotorGearset::blue);
 pros::MotorGroup right({18, 19, 20}, pros::MotorGearset::blue);
 pros::Motor roller(1, pros::MotorGearset::green);
 pros::Motor chain(-8, pros::MotorGearset::blue);
-pros::Motor lb(9, pros::MotorGearset::blue);
+pros::Motor lb(10, pros::MotorGearset::blue);
 
 pros::Rotation lbRotation(10);
 pros::Imu inertial(11);
@@ -39,7 +39,7 @@ pros::Controller ctrl(CONTROLLER_MASTER);  // controller here
 
 void on_left_button() {
   sortedColor++;
-  sortedColor = sortedColor % 2;
+  sortedColor = sortedColor % 3;// iterates between 0-2
 }
 
 void on_center_button() { autonElim = !autonElim; }
@@ -258,19 +258,15 @@ void initialize() {
   lcd layout (max 8 lines):
   0: hi (can be changed/removed later)
   1: left button setting - color sort fling
-  2: mid button setting - auton color     <-- maybe do these toggles for later?
-  3: right button setting - auton side    <--
+  2: mid button setting - auton type
+  3: right button setting - auton side
   4: temp flags - overheat or not
   5: comp ctrl mode flag - what mode it is in right now
   */
   pros::lcd::register_btn1_cb(on_center_button);
 }
 
-/**
- * Runs while the robot is in the disabled state of Field Management System or
- * the VEX Competition Switch, following either autonomous or opcontrol. When
- * the robot is enabled, this task will exit.
- */
+
 void disabled() { pros::lcd::print(5, "Disabled"); }
 
 /**
@@ -332,24 +328,14 @@ void opcontrol() {
   pros::lcd::print(5, "OpControl");
   while (true) {
     // temp flags
-    float dtLeftOT =
-        ((round(10.0 * ((left.get_temperature(0) + left.get_temperature(1) +
-                         left.get_temperature(2)) /
-                        3.0))) /
-         10.0);
-    float dtRightOT =
-        ((round(10.0 * ((right.get_temperature(0) + right.get_temperature(1) +
-                         right.get_temperature(2)) /
-                        3.0))) /
-         10.0);
+    float dtLeftOT = ((round(10.0 * ((left.get_temperature(0) + left.get_temperature(1) + left.get_temperature(2)) / 3.0))) / 10.0);
+    float dtRightOT = ((round(10.0 * ((right.get_temperature(0) + right.get_temperature(1) + right.get_temperature(2)) / 3.0))) / 10.0);
     float chainOT = chain.get_temperature();
     float lbOT = lb.get_temperature();
     float rollerOT = roller.get_temperature();
     // printing the overtemp flags on to lcd
-    pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT,
-                     dtRightOT, chainOT, lbOT, rollerOT);
-    ctrl.print(0, 0, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT,
-               dtRightOT, chainOT, lbOT, rollerOT);
+    pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
+    ctrl.print(0, 0, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
     // Arcade control scheme
     int power = ctrl.get_analog(ANALOG_LEFT_Y);
     int turn;
