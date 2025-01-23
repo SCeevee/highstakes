@@ -1,10 +1,14 @@
 #include "main.h"
 #include <cmath>
+#include <numeric>
+#include <vector>
 #include "liblvgl/llemu.hpp"
 #include "pros/abstract_motor.hpp"
+#include "pros/imu.hpp"
 #include "pros/llemu.hpp"
 #include "pros/motors.hpp"
 #include "pros/rtos.hpp"
+#include "lemlib/api.hpp" // IWYU pragma: keep
 #define pi 3.141592653589793
 #define as(a, b, c, d) for (auto a = b; a < c; a += d)
 #define de(a, b, c, d) for (auto a = b; a > c; a -= d)
@@ -266,6 +270,15 @@ void initialize() {
   pros::lcd::register_btn1_cb(on_center_button);
 }
 
+double dynamicCurve(double velocity){
+  const double minCurve = 0.4;
+  const double maxCurve = 1.0;
+  const double speedThresh = 300.0;
+
+  double normalVelocity = std::min(std::abs(velocity) / speedThresh, 1.0);
+  double curve = minCurve + normalVelocity * (maxCurve - minCurve);
+  return (velocity < 0) ? -curve : curve;
+}
 
 void disabled() { pros::lcd::print(5, "Disabled"); }
 
@@ -305,18 +318,20 @@ void opcontrol() {
     ctrl.print(0, 0, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
     // Arcade control scheme
     int power = ctrl.get_analog(ANALOG_LEFT_Y);
-    int turn;
+    int turn = ctrl.get_analog(ANALOG_RIGHT_X);
+    double velocity = (std::reduce(left.get_actual_velocity_all().begin(),left.get_actual_velocity_all().end()) + std::reduce(right.get_actual_velocity_all().begin(),right.get_actual_velocity_all().end())) / 2.0;
+    double curve = dynamicCurve(velocity);
+    double powerL = power + turn * curve;
+    double powerR = power - turn * curve;
+    
     if (ctrl.get_digital(DIGITAL_Y)) {  // modifier
-      turn = (ctrl.get_analog(ANALOG_RIGHT_X)) / 2;
-    } else {
-      turn = ctrl.get_analog(ANALOG_RIGHT_X);
+      turn = turn / 2;
     }
-    int powerL = power + turn;
-    int powerR = power - turn;
-
+    
     // dt
     left.move(powerL);
     right.move(powerR);
+    
 
     if (ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
       roller.move(127);
