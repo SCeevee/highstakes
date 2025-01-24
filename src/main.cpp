@@ -293,7 +293,9 @@ void autonomous() {
       drive(32, false, 400);
       inertialTurn(21.80140949, 300);
       mogoExtend();
+      //intakeon;
       drive(12, true, 400);
+      //intakeoff;
       inertialTurn(-90, 300);
       mogoRetract();
       drive(6, true, 400);
@@ -301,7 +303,9 @@ void autonomous() {
       drive(6, false, 400);
       mogoExtend();
       inertialTurn(-45, 300);
+      //intakeon;
       drive(26, true, 600);
+      //intakeoff;
     } else {  // far side
       // Elimination, far side
     }
@@ -311,7 +315,9 @@ void autonomous() {
       drive(32, false, 400);
       inertialTurn(21.80140949, 300);
       mogoExtend();
+      //intakeon;
       drive(12, true, 400);
+      //intakeoff;
       inertialTurn(-90, 300);
       mogoRetract();
       drive(6, true, 400);
