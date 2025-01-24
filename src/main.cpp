@@ -1,27 +1,30 @@
 #include "main.h"
+
 #include <cmath>
 #include <numeric>
 #include <vector>
+
+#include "lemlib/api.hpp"  // IWYU pragma: keep
 #include "liblvgl/llemu.hpp"
 #include "pros/abstract_motor.hpp"
 #include "pros/imu.hpp"
 #include "pros/llemu.hpp"
 #include "pros/motors.hpp"
 #include "pros/rtos.hpp"
-#include "lemlib/api.hpp" // IWYU pragma: keep
 #define pi 3.141592653589793
 #define as(a, b, c, d) for (auto a = b; a < c; a += d)
 #define de(a, b, c, d) for (auto a = b; a > c; a -= d)
 
-int sortedColor = 0;// 0 = keep blue, 1 = keep red, 2 = none
-bool autonElim;// F = qual auton, T = elim auton 
-bool autonSide;// T = close, F = far
-const int wheelCirc = 220;// in mm
-const int driveEncoders = 300;// ticks per revolution
-const double trackWidth = 10.8 * 25.4;// conversion to mm
-int lbStates[3] = {0, 100, 200};// list of all the states
-int lbState = 0;// current state it is in
-const int lbTotalStates = sizeof(lbStates) / sizeof(lbStates[0]);// total number of states
+int sortedColor = 0;                    // 0 = keep blue, 1 = keep red, 2 = none
+bool autonElim;                         // F = qual auton, T = elim auton
+bool autonSide;                         // T = close, F = far
+const int wheelCirc = 220;              // in mm
+const int driveEncoders = 300;          // ticks per revolution
+const double trackWidth = 10.8 * 25.4;  // conversion to mm
+int lbStates[3] = {0, 100, 200};        // list of all the states
+int lbState = 0;                        // current state it is in
+const int lbTotalStates =
+    sizeof(lbStates) / sizeof(lbStates[0]);  // total number of states
 
 pros::MotorGroup left({11, 12, 13}, pros::MotorGearset::blue);
 pros::MotorGroup right({18, 19, 20}, pros::MotorGearset::blue);
@@ -36,14 +39,16 @@ pros::Vision vision(4);
 pros::adi::Pneumatics mogoLeft('a', false);
 pros::adi::Pneumatics mogoRight('b', false);
 
-pros::vision_object_s_t keepRed = vision.get_by_sig(0, 1);// sorts out red donuts
-pros::vision_object_s_t keepBlue = vision.get_by_sig(0, 2);// sorts out blue donuts
+pros::vision_object_s_t keepRed =
+    vision.get_by_sig(0, 1);  // sorts out red donuts
+pros::vision_object_s_t keepBlue =
+    vision.get_by_sig(0, 2);  // sorts out blue donuts
 
 pros::Controller ctrl(CONTROLLER_MASTER);  // controller here
 
 void on_left_button() {
   sortedColor++;
-  sortedColor = sortedColor % 3;// iterates between 0-2
+  sortedColor = sortedColor % 3;  // iterates between 0-2
 }
 
 void on_center_button() { autonElim = !autonElim; }
@@ -51,14 +56,14 @@ void on_center_button() { autonElim = !autonElim; }
 void on_right_button() { autonSide = !autonSide; }
 
 void donut_detected() {
-  chain.set_brake_mode(pros::MotorBrake::brake);// to effectively fling
-  ctrl.rumble(".");// alerts driver
-  pros::delay(90);// adjustable
+  chain.set_brake_mode(pros::MotorBrake::brake);  // to effectively fling
+  ctrl.rumble(".");                               // alerts driver
+  pros::delay(90);                                // adjustable
   chain.brake();
   pros::delay(200);
 }
 
-void donut_not_detected() {// resets it to coast when not sorting
+void donut_not_detected() {  // resets it to coast when not sorting
   chain.set_brake_mode(pros::MotorBrake::coast);
 }
 
@@ -178,22 +183,19 @@ void mogoExtend() {
 void intake() {
   roller.move(127);
   chain.move(127);
-  while(true){
-    if(sortedColor == 0){
-      if(keepBlue.signature == 1){
+  while (true) {
+    if (sortedColor == 0) {
+      if (keepBlue.signature == 1) {
         donut_detected();
         break;
-      } 
-      else {
+      } else {
         donut_not_detected();
       }
-    }
-    else {
-      if(keepRed.signature == 1){
+    } else {
+      if (keepRed.signature == 1) {
         donut_detected();
         break;
-      }
-      else {
+      } else {
         donut_not_detected();
       }
     }
@@ -237,24 +239,24 @@ void initialize() {
   pros::Task([] {
     ladyBrownSet();  // rotates the lady brown thing to the state
   });
-  pros::Task([]{
+  pros::Task([] {
     if (sortedColor == 0) {
-        if (keepBlue.signature == 1) {
-          donut_detected();
-        } else {
-          donut_not_detected();
-        }
-      }
-      if (sortedColor == 1) {
-        if (keepRed.signature == 1) {
-          donut_detected();
-        } else {
-          donut_not_detected();
-        }
-      }
-      if (sortedColor == 2) {
+      if (keepBlue.signature == 1) {
+        donut_detected();
+      } else {
         donut_not_detected();
       }
+    }
+    if (sortedColor == 1) {
+      if (keepRed.signature == 1) {
+        donut_detected();
+      } else {
+        donut_not_detected();
+      }
+    }
+    if (sortedColor == 2) {
+      donut_not_detected();
+    }
   });
   /*It's good to have an lcd layout to give flags etc to the driver; you can do
   this through pros::lcd::print() which is to the brain or ctrl.print() which is
@@ -270,7 +272,7 @@ void initialize() {
   pros::lcd::register_btn1_cb(on_center_button);
 }
 
-double dynamicCurve(double velocity){
+double dynamicCurve(double velocity) {
   const double minCurve = 0.4;
   const double maxCurve = 1.0;
   const double speedThresh = 300.0;
@@ -284,22 +286,43 @@ void disabled() { pros::lcd::print(5, "Disabled"); }
 
 void competition_initialize() { pros::lcd::print(5, "Competition Initialize"); }
 
-void autonomous() { 
-  pros::lcd::print(5, "Autonomous");// COLOR IS ACCOUNTED IN intake()
-  if(autonElim){// Elimination auton here
-    if(autonSide){// close side
-      // Elimination, close side
-    }
-    else{// far side
+void autonomous() {
+  pros::lcd::print(5, "Autonomous");  // COLOR IS ACCOUNTED IN intake()
+  if (autonElim) {                    // Elimination auton here
+    if (autonSide) {                  // close side
+      drive(32, false, 400);
+      inertialTurn(21.80140949, 300);
+      mogoExtend();
+      drive(12, true, 400);
+      inertialTurn(-90, 300);
+      mogoRetract();
+      drive(6, true, 400);
+      inertialTurn(180, 300);
+      drive(6, false, 400);
+      mogoExtend();
+      inertialTurn(-45, 300);
+      drive(26, true, 600);
+    } else {  // far side
       // Elimination, far side
     }
-  }
-  else{// Qualification auton here
-    if(autonSide){// close side
-    // Qualification, close side
-    }
-    else{// far side
-    // Qualification, far side
+  } else {            // Qualification auton here
+    if (autonSide) {  // close side
+      // Qualification, close side
+      drive(32, false, 400);
+      inertialTurn(21.80140949, 300);
+      mogoExtend();
+      drive(12, true, 400);
+      inertialTurn(-90, 300);
+      mogoRetract();
+      drive(6, true, 400);
+      inertialTurn(180, 300);
+      drive(6, false, 400);
+      mogoExtend();
+      inertialTurn(-45, 300);
+      drive(9, false, 400);
+
+    } else {  // far side
+      // Qualification, far side
     }
   }
 }
@@ -308,30 +331,43 @@ void opcontrol() {
   pros::lcd::print(5, "OpControl");
   while (true) {
     // temp flags
-    float dtLeftOT = ((round(10.0 * ((left.get_temperature(0) + left.get_temperature(1) + left.get_temperature(2)) / 3.0))) / 10.0);
-    float dtRightOT = ((round(10.0 * ((right.get_temperature(0) + right.get_temperature(1) + right.get_temperature(2)) / 3.0))) / 10.0);
+    float dtLeftOT =
+        ((round(10.0 * ((left.get_temperature(0) + left.get_temperature(1) +
+                         left.get_temperature(2)) /
+                        3.0))) /
+         10.0);
+    float dtRightOT =
+        ((round(10.0 * ((right.get_temperature(0) + right.get_temperature(1) +
+                         right.get_temperature(2)) /
+                        3.0))) /
+         10.0);
     float chainOT = chain.get_temperature();
     float lbOT = lb.get_temperature();
     float rollerOT = roller.get_temperature();
     // printing the overtemp flags on to lcd
-    pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
-    ctrl.print(0, 0, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT, dtRightOT, chainOT, lbOT, rollerOT);
+    pros::lcd::print(4, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT,
+                     dtRightOT, chainOT, lbOT, rollerOT);
+    ctrl.print(0, 0, "DTL%.1f DTR%.1f Chain%.1f LB%.1f Roller%.1f", dtLeftOT,
+               dtRightOT, chainOT, lbOT, rollerOT);
     // Arcade control scheme
     int power = ctrl.get_analog(ANALOG_LEFT_Y);
     int turn = ctrl.get_analog(ANALOG_RIGHT_X);
-    double velocity = (std::reduce(left.get_actual_velocity_all().begin(),left.get_actual_velocity_all().end()) + std::reduce(right.get_actual_velocity_all().begin(),right.get_actual_velocity_all().end())) / 2.0;
+    double velocity = (std::reduce(left.get_actual_velocity_all().begin(),
+                                   left.get_actual_velocity_all().end()) +
+                       std::reduce(right.get_actual_velocity_all().begin(),
+                                   right.get_actual_velocity_all().end())) /
+                      2.0;
     double curve = dynamicCurve(velocity);
     double powerL = power + turn * curve;
     double powerR = power - turn * curve;
-    
+
     if (ctrl.get_digital(DIGITAL_Y)) {  // modifier
       turn = turn / 2;
     }
-    
+
     // dt
     left.move(powerL);
     right.move(powerR);
-    
 
     if (ctrl.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
       roller.move(127);
