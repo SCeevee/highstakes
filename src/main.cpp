@@ -46,6 +46,10 @@ pros::vision_object_s_t keepBlue =
 
 pros::Controller ctrl(CONTROLLER_MASTER);  // controller here
 
+auto vector_sum(auto vector){
+  return std::reduce(vector.begin(), vector.end());
+}
+
 void on_left_button() {
   sortedColor++;
   sortedColor = sortedColor % 3;  // iterates between 0-2
@@ -338,15 +342,9 @@ void opcontrol() {
   while (true) {
     // temp flags
     float dtLeftOT =
-        ((round(10.0 * ((left.get_temperature(0) + left.get_temperature(1) +
-                         left.get_temperature(2)) /
-                        3.0))) /
-         10.0);
+        ((round(10.0 * ((vector_sum(left.get_temperature_all()) / 3.0))) / 10.0));
     float dtRightOT =
-        ((round(10.0 * ((right.get_temperature(0) + right.get_temperature(1) +
-                         right.get_temperature(2)) /
-                        3.0))) /
-         10.0);
+        ((round(10.0 * ((vector_sum(right.get_temperature_all()) / 3.0))) / 10.0));
     float chainOT = chain.get_temperature();
     float lbOT = lb.get_temperature();
     float rollerOT = roller.get_temperature();
@@ -358,11 +356,7 @@ void opcontrol() {
     // Arcade control scheme
     int power = ctrl.get_analog(ANALOG_LEFT_Y);
     int turn = ctrl.get_analog(ANALOG_RIGHT_X);
-    double velocity = (std::reduce(left.get_actual_velocity_all().begin(),
-                                   left.get_actual_velocity_all().end()) +
-                       std::reduce(right.get_actual_velocity_all().begin(),
-                                   right.get_actual_velocity_all().end())) /
-                      2.0;
+    double velocity = (vector_sum(left.get_actual_velocity_all()) + vector_sum(right.get_actual_velocity_all()) / 2.0);
     double curve = dynamicCurve(velocity);
     double powerL = power + turn * curve;
     double powerR = power - turn * curve;
