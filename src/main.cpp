@@ -294,45 +294,66 @@ void autonomous() {
   pros::lcd::print(5, "Autonomous");  // COLOR IS ACCOUNTED IN intake()
   if (autonElim) {                    // Elimination auton here
     if (autonSide) {                  // close side
-      drive(32, false, 400);
+      drive(64, false, 400);
       inertialTurn(21.80140949, 300);
       mogoExtend();
       //intakeon;
-      drive(12, true, 400);
+      drive(24, true, 400);
       //intakeoff;
       inertialTurn(-90, 300);
       mogoRetract();
-      drive(6, true, 400);
+      drive(12, true, 400);
       inertialTurn(180, 300);
-      drive(6, false, 400);
+      drive(12, false, 400);
       mogoExtend();
       inertialTurn(-45, 300);
       //intakeon;
-      drive(26, true, 600);
+      drive(52, true, 600);
       //intakeoff;
     } else {  // far side
-      // Elimination, far side
+      //lb
+      drive(45.6, false, 400);
+      mogoExtend();
+      inertialTurn(157, 300);
+      drive(33.94, true, 400);
+      //intake on
+      inertialTurn(135, 300);
+      drive(24, true, 400);
+      //intake off
+      inertialTurn(-25.17352452, 300);
+      drive(46.52, true, 400);
     }
   } else {            // Qualification auton here
     if (autonSide) {  // close side
       // Qualification, close side
-      drive(32, false, 400);
+      drive(64, false, 400);
       inertialTurn(21.80140949, 300);
       mogoExtend();
       //intakeon;
-      drive(12, true, 400);
+      drive(24, true, 400);
       //intakeoff;
       inertialTurn(-90, 300);
       mogoRetract();
-      drive(6, true, 400);
+      drive(12, true, 400);
       inertialTurn(180, 300);
-      drive(6, false, 400);
+      drive(12, false, 400);
       mogoExtend();
       inertialTurn(-45, 300);
-      drive(9, false, 400);
+      drive(18, false, 400);
 
     } else {  // far side
       // Qualification, far side
+      //lb
+      drive(45.6, false, 400);
+      mogoExtend();
+      inertialTurn(157, 300);
+      drive(33.94, true, 400);
+      //intake on
+      inertialTurn(135, 300);
+      drive(24, true, 400);
+      //intake off
+      inertialTurn(103.23412, 300);
+      drive(38, true, 400);
     }
   }
 }
